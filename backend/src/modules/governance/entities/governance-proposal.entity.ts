@@ -15,20 +15,34 @@ export enum ProposalStatus {
   CANCELLED = 'Cancelled',
 }
 
+export enum ProposalCategory {
+  GOVERNANCE = 'Governance',
+  TREASURY = 'Treasury',
+  TECHNICAL = 'Technical',
+  COMMUNITY = 'Community',
+}
+
 @Entity('governance_proposals')
 export class GovernanceProposal {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   /** On-chain proposal ID from the DAO contract */
-  @Column({ unique: true })
-  onChainId: string;
+  @Column({ type: 'int', unique: true })
+  onChainId: number;
 
-  @Column({ nullable: true })
-  proposer: string;
+  @Column()
+  title: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   description: string;
+
+  @Column({
+    type: 'enum',
+    enum: ProposalCategory,
+    default: ProposalCategory.GOVERNANCE,
+  })
+  category: ProposalCategory;
 
   @Column({
     type: 'enum',
@@ -36,6 +50,9 @@ export class GovernanceProposal {
     default: ProposalStatus.ACTIVE,
   })
   status: ProposalStatus;
+
+  @Column({ nullable: true })
+  proposer: string;
 
   @Column({ type: 'bigint', nullable: true })
   startBlock: number;
