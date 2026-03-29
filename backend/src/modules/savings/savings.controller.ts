@@ -10,6 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
   Param,
+  Query,
 } from '@nestjs/common';
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import {
@@ -19,15 +20,17 @@ import {
   ApiBody,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { SavingsService } from './savings.service';
-import { SavingsProduct } from './entities/savings-product.entity';
+import { SavingsProduct, RiskLevel } from './entities/savings-product.entity';
 import { UserSubscription } from './entities/user-subscription.entity';
 import { SavingsGoal } from './entities/savings-goal.entity';
 import { SubscribeDto } from './dto/subscribe.dto';
 import { CreateGoalDto } from './dto/create-goal.dto';
 import { UpdateGoalDto } from './dto/update-goal.dto';
+import { SavingsProductDto } from './dto/savings-product.dto';
 import { ProductDetailsDto } from './dto/product-details.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -47,9 +50,16 @@ export class SavingsController {
   @CacheKey('pools_all')
   @CacheTTL(60000)
   @ApiOperation({ summary: 'List all savings products' })
-  @ApiResponse({ status: 200, description: 'List of savings products' })
-  async getProducts(): Promise<SavingsProduct[]> {
-    return await this.savingsService.findAllProducts(true);
+  @ApiQuery({ name: 'sort', required: false, enum: ['apy', 'tvl'] })
+  @ApiResponse({
+    status: 200,
+    description: 'List of savings products',
+    type: [SavingsProductDto],
+  })
+  async getProducts(
+    @Query('sort') sort?: 'apy' | 'tvl',
+  ): Promise<SavingsProductDto[]> {
+    return await this.savingsService.findAllProducts(true, sort);
   }
 
   @Get('products/:id')
@@ -99,6 +109,7 @@ export class SavingsController {
       contractId: product.contractId,
       totalAssets,
       totalAssetsXlm,
+      riskLevel: product.riskLevel || RiskLevel.LOW,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     };
