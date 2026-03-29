@@ -6,6 +6,7 @@ import { Notification, NotificationType } from './entities/notification.entity';
 import { NotificationPreference } from './entities/notification-preference.entity';
 import { MailService } from '../mail/mail.service';
 import { User } from '../user/entities/user.entity';
+import { InterestCreditedEvent } from '../savings/services/interest-calculation.service';
 
 export interface SweepCompletedEvent {
   userId: string;
@@ -88,6 +89,55 @@ export class NotificationsService {
     } catch (error) {
       this.logger.error(
         `Error processing sweep.completed event for user ${event.userId}`,
+        error,
+      );
+    }
+  }
+
+  /**
+   * Listen to interest.credited event and notify users of daily interest
+   */
+  @OnEvent('interest.credited')
+  async handleInterestCredited(event: InterestCreditedEvent) {
+    this.logger.log(`Processing interest.credited event for user ${event.userId}`);
+
+    try {
+      const user = await this.userRepository.findOne({ where: { id: event.userId } });
+      if (!user) {
+        this.logger.warn(`User ${event.userId} not found for interest notification`);
+        return;
+      }
+
+      const preferences = await this.getOrCreatePreferences(event.userId);
+
+      if (preferences.inAppNotifications) {
+        await this.createNotification({
+          userId: event.userId,
+          type: NotificationType.INTEREST_CREDITED,
+          title: 'Interest Credited',
+          message: `${event.interestEarned} interest has been credited to your ${event.productName} savings.`,
+          metadata: {
+            subscriptionId: event.subscriptionId,
+            productName: event.productName,
+            interestEarned: event.interestEarned,
+            newBalance: event.newBalance,
+            calculationDate: event.calculationDate,
+          },
+        });
+      }
+
+      if (preferences.emailNotifications) {
+        await this.mailService.sendInterestCreditedEmail(
+          user.email,
+          user.name || 'User',
+          event.productName,
+          event.interestEarned,
+          event.newBalance,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error processing interest.credited event for user ${event.userId}`,
         error,
       );
     }

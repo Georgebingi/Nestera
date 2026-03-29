@@ -47,6 +47,31 @@ export class MailService {
     }
   }
 
+  async sendInterestCreditedEmail(
+    userEmail: string,
+    name: string,
+    productName: string,
+    interestEarned: string,
+    newBalance: string,
+  ): Promise<void> {
+    try {
+      await this.mailerService.sendMail({
+        to: userEmail,
+        subject: 'Interest Credited to Your Savings',
+        template: './interest-credited',
+        context: {
+          name: name || 'User',
+          productName,
+          interestEarned,
+          newBalance,
+        },
+      });
+      this.logger.log(`Interest credited email sent to ${userEmail}`);
+    } catch (error) {
+      this.logger.error(`Failed to send interest credited email to ${userEmail}`, error);
+    }
+  }
+
   async sendClaimStatusEmail(
     userEmail: string,
     name: string,
