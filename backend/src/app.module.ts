@@ -1,10 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { CorrelationIdInterceptor } from './common/interceptors/correlation-id.interceptor';
 import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
+import { RequestLoggingInterceptor } from './common/interceptors/request-logging.interceptor';
+import { GracefulShutdownInterceptor } from './common/interceptors/graceful-shutdown.interceptor';
 import { TieredThrottlerGuard } from './common/guards/tiered-throttler.guard';
 import { CommonModule } from './common/common.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -33,10 +35,18 @@ import { SavingsModule } from './modules/savings/savings.module';
 import { GovernanceModule } from './modules/governance/governance.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { ReferralsModule } from './modules/referrals/referrals.module';
 import { TestRbacModule } from './test-rbac/test-rbac.module';
 import { TestThrottlingModule } from './test-throttling/test-throttling.module';
 import { ApiVersioningModule } from './common/versioning/api-versioning.module';
 import { BackupModule } from './modules/backup/backup.module';
+import { ConnectionPoolModule } from './common/database/connection-pool.module';
+import { CircuitBreakerModule } from './common/circuit-breaker/circuit-breaker.module';
+import { PostmanModule } from './common/postman/postman.module';
+import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
+import { PerformanceModule } from './modules/performance/performance.module';
+import { GracefulShutdownService } from './common/services/graceful-shutdown.service';
 
 const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').required(),
@@ -186,10 +196,16 @@ const envValidationSchema = Joi.object({
     GovernanceModule,
     NotificationsModule,
     TransactionsModule,
+    ReportsModule,
+    ReferralsModule,
     TestRbacModule,
     TestThrottlingModule,
     ApiVersioningModule,
     BackupModule,
+    ConnectionPoolModule,
+    CircuitBreakerModule,
+    PostmanModule,
+    PerformanceModule,
     CommonModule,
     ThrottlerModule.forRoot([
       {
@@ -212,9 +228,14 @@ const envValidationSchema = Joi.object({
   controllers: [AppController],
   providers: [
     AppService,
+    GracefulShutdownService,
     {
       provide: APP_GUARD,
       useClass: TieredThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RequestLoggingInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,
@@ -224,6 +245,14 @@ const envValidationSchema = Joi.object({
       provide: APP_INTERCEPTOR,
       useClass: AuditLogInterceptor,
     },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: GracefulShutdownInterceptor,
+    },
   ],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+  }
+}
