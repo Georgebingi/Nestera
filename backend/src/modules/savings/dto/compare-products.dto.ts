@@ -1,5 +1,5 @@
 import { IsArray, IsUUID, ArrayMinSize, ArrayMaxSize, IsNumber, IsOptional, Min } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CompareProductsDto {
   @ApiProperty({
