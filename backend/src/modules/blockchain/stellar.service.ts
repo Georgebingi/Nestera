@@ -271,10 +271,23 @@ export class StellarService implements OnModuleInit {
    * @param limit     - Maximum number of transactions to return (default 10)
    * @returns         Array of sanitized TransactionDto objects
    */
+  async getRecentTransactions(publicKey: string): Promise<TransactionDto[]>;
   async getRecentTransactions(
     publicKey: string,
-    limit = 10,
-  ): Promise<TransactionDto[]> {
+    limit?: number,
+    cursor?: string,
+  ): Promise<
+    | { records: TransactionDto[]; nextCursor: string | null; hasMore: boolean }
+    | TransactionDto[]
+  >;
+  async getRecentTransactions(
+    publicKey: string,
+    limit: number = 10,
+    cursor?: string,
+  ): Promise<
+    | TransactionDto[]
+    | { records: TransactionDto[]; nextCursor: string | null; hasMore: boolean }
+  > {
     try {
       return await this.rpcClient.executeWithRetry(async (client) => {
         const horizonServer = client as Horizon.Server;
@@ -336,6 +349,21 @@ export class StellarService implements OnModuleInit {
             } satisfies TransactionDto;
           }),
         );
+
+        // If caller requested pagination via cursor, return pagination object
+        if (cursor) {
+          const hasMore = transactions.length >= limit;
+          const nextCursor =
+            hasMore && results.length > 0
+              ? results[results.length - 1].hash
+              : null;
+
+          return {
+            records: results,
+            nextCursor,
+            hasMore,
+          };
+        }
 
         return results;
       }, 'horizon');

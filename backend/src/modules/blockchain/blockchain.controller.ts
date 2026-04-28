@@ -1,5 +1,11 @@
 import { Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { StellarService } from './stellar.service';
 import { BalanceSyncService } from './balance-sync.service';
 import { TransactionDto } from './dto/transaction.dto';
@@ -54,16 +60,28 @@ export class BlockchainController {
       },
     },
   })
-  getWalletTransactions(
+  async getWalletTransactions(
     @Param('publicKey') publicKey: string,
     @Query('limit') limit?: number,
     @Query('cursor') cursor?: string,
-  ) {
-    return this.stellarService.getRecentTransactions(
-      publicKey,
-      limit ? Math.min(Math.max(limit, 1), 200) : 10,
-      cursor,
-    );
+  ): Promise<any> {
+    const sanitizedLimit = limit ? Math.min(Math.max(limit, 1), 200) : 10;
+    const res =
+      limit === undefined && cursor === undefined
+        ? await this.stellarService.getRecentTransactions(publicKey)
+        : await this.stellarService.getRecentTransactions(
+            publicKey,
+            sanitizedLimit,
+            cursor,
+          );
+
+    if (Array.isArray(res)) return res;
+    // If paginated result returned and no cursor provided, return records for backward compatibility
+    if (!cursor && res && typeof res === 'object' && 'records' in res) {
+      return (res as { records: TransactionDto[] }).records;
+    }
+
+    return res;
   }
 
   @Get('rpc/status')
