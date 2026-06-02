@@ -26,6 +26,7 @@ import { ChallengesModule } from './modules/challenges/challenges.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { MailModule } from './modules/mail/mail.module';
+import { EmailTemplatesModule } from './modules/email-templates/email-templates.module';
 import { CacheModule } from './modules/cache/cache.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { ClaimsModule } from './modules/claims/claims.module';
@@ -303,6 +304,7 @@ const envValidationSchema = Joi.object({
     AlertsModule,
     AdminModule,
     MailModule,
+    EmailTemplatesModule,
     WebhooksModule,
     ClaimsModule,
     DisputesModule,
