@@ -54,6 +54,7 @@ import { GracefulShutdownService } from './common/services/graceful-shutdown.ser
 import { ApmModule } from './modules/apm/apm.module';
 import { PerformanceModule } from './modules/performance/performance.module';
 import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
+import { StatisticsModule } from './modules/statistics/statistics.module';
 
 const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').required(),
@@ -311,6 +312,7 @@ const envValidationSchema = Joi.object({
     DisputesModule,
     AdminAnalyticsModule,
     AnalyticsModule,
+    StatisticsModule,
     SavingsModule,
     GovernanceModule,
     NotificationsModule,
